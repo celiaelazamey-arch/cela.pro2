@@ -22,11 +22,10 @@ def git_smart_push(repo_path, message, token=None):
         if log_check.returncode != 0:
              subprocess.run(['git', '-C', repo_path, 'commit', '--allow-empty', '-m', message], check=True)
 
-    # Explicit push using full authenticated URL to avoid 'origin' persistence issues
+    # Explicit push using full authenticated URL
     if token:
         print('⌛ Synchronizing and pushing to GitHub via authenticated URL...')
         remote_url = f'https://{token}@github.com/celiaelazamey-arch/cela.pro2.git'
-        # Force push current state (main) to remote main
         result = subprocess.run(['git', '-C', repo_path, 'push', remote_url, 'HEAD:main', '--force'], capture_output=True, text=True)
     else:
         raise Exception('GITHUB_TOKEN missing. Cannot push to private repository.')

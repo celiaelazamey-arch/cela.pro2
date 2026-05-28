@@ -12,22 +12,6 @@ def git_smart_push(repo_path, message, token=None):
     subprocess.run(['git', '-C', repo_path, 'config', 'user.email', 'archive@cela.pro'], check=True)
     subprocess.run(['git', '-C', repo_path, 'config', 'user.name', 'Archive Agent'], check=True)
 
-    # Explicitly set/rename branch to main
-    subprocess.run(['git', '-C', repo_path, 'branch', '-M', 'main'], check=True)
-
-    # Robust Remote Handling
-    if token:
-        remote_url = f'https://{token}@github.com/celiaelazamey-arch/cela.pro2.git'
-        # Check if remote exists using a more reliable check
-        check_remote = subprocess.run(['git', '-C', repo_path, 'remote', 'get-url', 'origin'], capture_output=True, text=True)
-        
-        if check_remote.returncode == 0:
-            print('Updating existing origin remote...')
-            subprocess.run(['git', '-C', repo_path, 'remote', 'set-url', 'origin', remote_url], check=True)
-        else:
-            print('Adding new origin remote...')
-            subprocess.run(['git', '-C', repo_path, 'remote', 'add', 'origin', remote_url], check=True)
-
     # Stage and Commit
     subprocess.run(['git', '-C', repo_path, 'add', '.'], check=True)
     status = subprocess.run(['git', '-C', repo_path, 'status', '--porcelain'], capture_output=True, text=True)
@@ -38,9 +22,14 @@ def git_smart_push(repo_path, message, token=None):
         if log_check.returncode != 0:
              subprocess.run(['git', '-C', repo_path, 'commit', '--allow-empty', '-m', message], check=True)
 
-    print('⌛ Synchronizing and pushing to GitHub...')
-    # Note: Using origin main explicitly
-    result = subprocess.run(['git', '-C', repo_path, 'push', 'origin', 'main', '--force'], capture_output=True, text=True)
+    # Explicit push using full authenticated URL to avoid 'origin' persistence issues
+    if token:
+        print('⌛ Synchronizing and pushing to GitHub via authenticated URL...')
+        remote_url = f'https://{token}@github.com/celiaelazamey-arch/cela.pro2.git'
+        # Force push current state (main) to remote main
+        result = subprocess.run(['git', '-C', repo_path, 'push', remote_url, 'HEAD:main', '--force'], capture_output=True, text=True)
+    else:
+        raise Exception('GITHUB_TOKEN missing. Cannot push to private repository.')
 
     if result.returncode != 0:
         raise Exception(f'Git Push Failed: {result.stderr}')

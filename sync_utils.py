@@ -10,11 +10,16 @@ def git_smart_push(repo_path, message, token=None):
     # Explicitly set/rename branch to main
     subprocess.run(['git', '-C', repo_path, 'branch', '-M', 'main'], check=True)
 
-    # Update remote URL with token if provided
+    # Robust Remote Handling
     if token:
         remote_url = f'https://{token}@github.com/celiaelazamey-arch/cela.pro2.git'
-        subprocess.run(['git', '-C', repo_path, 'remote', 'set-url', 'origin', remote_url], capture_output=True)
-    
+        # Check if remote exists
+        remotes = subprocess.run(['git', '-C', repo_path, 'remote'], capture_output=True, text=True).stdout
+        if 'origin' in remotes:
+            subprocess.run(['git', '-C', repo_path, 'remote', 'set-url', 'origin', remote_url], check=True)
+        else:
+            subprocess.run(['git', '-C', repo_path, 'remote', 'add', 'origin', remote_url], check=True)
+
     subprocess.run(['git', '-C', repo_path, 'config', 'user.email', 'archive@cela.pro'], check=True)
     subprocess.run(['git', '-C', repo_path, 'config', 'user.name', 'Archive Agent'], check=True)
 
@@ -25,7 +30,6 @@ def git_smart_push(repo_path, message, token=None):
     if status.stdout.strip():
         subprocess.run(['git', '-C', repo_path, 'commit', '-m', message], capture_output=True)
     else:
-        # Ensure at least one commit exists to push
         log_check = subprocess.run(['git', '-C', repo_path, 'log'], capture_output=True)
         if log_check.returncode != 0:
              subprocess.run(['git', '-C', repo_path, 'commit', '--allow-empty', '-m', message], capture_output=True)
